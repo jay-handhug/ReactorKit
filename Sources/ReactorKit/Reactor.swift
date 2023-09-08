@@ -61,8 +61,8 @@ public protocol Reactor: AnyObject {
   /// Generates a new state with the previous state and the action. It should be purely functional
   /// so it should not perform any side-effects here. This method is called every time when the
   /// mutation is committed.
-  func reduce(state: State, mutation: Mutation) -> State
-
+  func reduce(state: inout State, mutation: Mutation)
+  
   /// Transforms the state stream. Use this function to perform side-effects such as logging. This
   /// method is called once after the state stream is created.
   func transform(state: Observable<State>) -> Observable<State>
@@ -142,7 +142,9 @@ extension Reactor {
     let state = transformedMutation
       .scan(initialState) { [weak self] state, mutation -> State in
         guard let self = self else { return state }
-        return self.reduce(state: state, mutation: mutation)
+        var nextState = state
+        self.reduce(state: &nextState, mutation: mutation)
+        return nextState
       }
       .catch { _ in .empty() }
       .startWith(initialState)
@@ -167,9 +169,7 @@ extension Reactor {
     mutation
   }
 
-  public func reduce(state: State, mutation: Mutation) -> State {
-    state
-  }
+  public func reduce(state: inout State, mutation: Mutation) { }
 
   public func transform(state: Observable<State>) -> Observable<State> {
     state
