@@ -27,13 +27,6 @@ let package = Package(
       name: "ReactorKitRuntime",
       dependencies: []
     ),
-    .testTarget(
-      name: "ReactorKitTests",
-      dependencies: [
-        "ReactorKit",
-        .product(name: "RxTest", package: "RxSwift"),
-      ]
-    ),
   ],
   swiftLanguageVersions: [.v5]
 )
