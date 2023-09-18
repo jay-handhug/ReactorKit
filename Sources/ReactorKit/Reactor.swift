@@ -105,12 +105,9 @@ extension Reactor {
   
   public func createStateStream() -> Observable<State> {
     let action = _action.asObservable()
+      .observe(on: MainScheduler.instance)
     let state = action
       .scan(initialState) { [weak self] state, action -> State in
-        if !Thread.isMainThread {
-          assertionFailure("Action은 메인 스레드에서만 방출되어야합니다.")
-        }
-          
         guard let self = self else { return state }
         var state = state
         let nextAction = self.reduce(state: &state, action: action)
