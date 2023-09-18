@@ -8,6 +8,7 @@
 
 import RxSwift
 import WeakMapTable
+import Foundation
 
 @available(*, obsoleted: 0, renamed: "Never")
 public typealias NoAction = Never
@@ -25,9 +26,7 @@ public protocol Reactor: AnyObject {
   
   /// A State represents the current state of a view.
   associatedtype State
-  
-  typealias Scheduler = ImmediateSchedulerType
-  
+    
   /// The action from the view. Bind user inputs to this subject.
   var action: ActionSubject<Action> { get }
   
@@ -108,12 +107,18 @@ extension Reactor {
     let action = _action.asObservable()
     let state = action
       .scan(initialState) { [weak self] state, action -> State in
+        if !Thread.isMainThread {
+          assertionFailure("Action은 메인 스레드에서만 방출되어야합니다.")
+        }
+          
         guard let self = self else { return state }
         var state = state
         let nextAction = self.reduce(state: &state, action: action)
+
         nextAction
-          .subscribe(onNext: { action in
-            self.action.onNext(action)
+          .subscribe(on: MainScheduler.instance)
+          .subscribe(onNext: { [weak self] action in
+            self?.action.onNext(action)
           })
           .disposed(by: self.disposeBag)
         
@@ -128,7 +133,7 @@ extension Reactor {
       })
       .replay(1)
       replayState.connect().disposed(by: disposeBag)
-      return replayState.subscribe(on: MainScheduler.instance)
+      return replayState
   }
 }
 
